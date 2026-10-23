@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Techfest 3D | Scroll through the future</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{background:#05060d;color:#fff;font-family:Inter,sans-serif;overflow-x:hidden}
+canvas{position:fixed;inset:0;z-index:0}
+.sec{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;padding:0 7vw;pointer-events:none}
+.sec.r{justify-content:flex-end;text-align:right}
+.box{max-width:480px;pointer-events:auto}
+h1,h2{font-family:Unbounded,sans-serif;line-height:1.05}
+h1{font-size:clamp(2.6rem,8vw,6.5rem);font-weight:800}
+h2{font-size:clamp(1.8rem,4.5vw,3.4rem);margin-bottom:16px;font-weight:800}
+p{color:#b9bfd6;line-height:1.7}
+.hint{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:2;font-size:.85rem;color:#8890b0;transition:opacity .4s}
+.hud{position:fixed;top:20px;left:7vw;right:7vw;display:flex;justify-content:space-between;z-index:2;font-family:Unbounded;font-size:.8rem}
+.dots{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:2;display:grid;gap:12px}
+.dots i{width:9px;height:9px;border-radius:50%;background:#444a66;transition:.3s}.dots i.on{background:#fff;transform:scale(1.5)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.r .chips{justify-content:flex-end}
+.chips span{padding:7px 14px;border-radius:99px;border:1px solid #394063;font-size:.85rem;cursor:pointer;transition:.2s}
+.chips span:hover{background:#fff;color:#000}
+a.cta{display:inline-block;margin-top:22px;padding:14px 30px;border-radius:99px;background:#fff;color:#000;font-weight:500;text-decoration:none}
+@media(max-width:700px){.sec,.sec.r{justify-content:flex-start;text-align:left;align-items:flex-end;padding-bottom:12vh}.r .chips{justify-content:flex-start}.dots{display:none}}
+</style></head><body>
+<div class="hud"><span>TECHFEST</span><span id="sec">01 / 04</span></div>
+<div class="dots"><i class="on"></i><i></i><i></i><i></i></div>
+<div class="hint" id="hint">Scroll, and move your mouse</div>
+<section class="sec"><div class="box"><h1>Tech<br>fest</h1><p style="margin-top:18px">Asia's largest science and technology festival, rebuilt as a place you can fly through.</p></div></section>
+<section class="sec r"><div class="box"><h2>Compete</h2><p>Robotics, coding, design and aerospace contests where the best student teams test their ideas against each other.</p><div class="chips"><span data-c="0">Robotics</span><span data-c="1">Coding</span><span data-c="2">Aerospace</span></div></div></section>
+<section class="sec"><div class="box"><h2>Learn</h2><p>Lectures, workshops and talks from researchers and founders who are shaping what comes next.</p></div></section>
+<section class="sec r"><div class="box"><h2>Join the orbit</h2><p>Click the shape to change its form. Then come build with us.</p><a class="cta" href="https://techfest.org" target="_blank" rel="noopener">Visit techfest.org</a></div></section>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const R=new THREE.WebGLRenderer({antialias:true,alpha:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(innerWidth,innerHeight);document.body.prepend(R.domElement);
+const S=new THREE.Scene();S.fog=new THREE.FogExp2(0x05060d,.045);
+const C=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,100);C.position.z=7;
+S.add(new THREE.AmbientLight(0xffffff,.4));const L=new THREE.PointLight(0xffffff,1.4,40);L.position.set(5,5,6);S.add(L);
+const geos=[new THREE.TorusKnotGeometry(1.4,.42,160,24),new THREE.IcosahedronGeometry(1.9,1),new THREE.OctahedronGeometry(2),new THREE.TorusGeometry(1.6,.55,24,60)];
+const mat=new THREE.MeshStandardMaterial({color:0x5b6cff,metalness:.7,roughness:.25,flatShading:true});
+const hero=new THREE.Mesh(geos[0],mat);S.add(hero);
+const wire=new THREE.Mesh(geos[0],new THREE.MeshBasicMaterial({color:0xffffff,wireframe:true,transparent:true,opacity:.12}));wire.scale.setScalar(1.25);hero.add(wire);
+const N=900,pos=new Float32Array(N*3);for(let i=0;i<N*3;i++)pos[i]=(Math.random()-.5)*50;
+const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+const stars=new THREE.Points(sg,new THREE.PointsMaterial({size:.05,color:0xffffff}));S.add(stars);
+const cubes=[];for(let i=0;i<14;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.4,.4,.4),new THREE.MeshStandardMaterial({color:0xff5fa2,metalness:.5,roughness:.3}));const a=i/14*Math.PI*2;m.userData={a,r:3.2+Math.random()*1.5,y:(Math.random()-.5)*4};S.add(m);cubes.push(m)}
+const cols=[0x5b6cff,0xff5fa2,0x3de0b0,0xffc447],poses=[[1.8,0,0],[-2,0,0],[1.8,0,0],[-1.6,0,0]];
+let shape=0,t=0,mx=0,my=0,target=new THREE.Color(cols[0]);
+function setShape(i){shape=i%geos.length;hero.geometry=geos[shape];wire.geometry=geos[shape]}
+addEventListener('pointermove',e=>{mx=e.clientX/innerWidth-.5;my=e.clientY/innerHeight-.5});
+const ray=new THREE.Raycaster(),v=new THREE.Vector2();
+addEventListener('click',e=>{v.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(v,C);if(ray.intersectObject(hero).length)setShape(shape+1)});
+document.querySelectorAll('.chips span').forEach(c=>c.onclick=()=>setShape(+c.dataset.c+1));
+const dots=[...document.querySelectorAll('.dots i')],lab=document.getElementById('sec');
+let prog=0,cur=0;
+function loop(){t+=.01;
+const max=document.body.scrollHeight-innerHeight,p=scrollY/max;prog+=(p-prog)*.07;
+const f=prog*3,i=Math.min(3,Math.round(f));
+if(i!==cur){cur=i;target.set(cols[i]);dots.forEach((d,k)=>d.classList.toggle('on',k===i));lab.textContent='0'+(i+1)+' / 04';document.getElementById('hint').style.opacity=0}
+mat.color.lerp(target,.05);
+const a=Math.min(2,Math.floor(f)),b=Math.min(3,a+1),k=f-Math.floor(f),ease=k*k*(3-2*k);
+const px=poses[a][0]+(poses[b][0]-poses[a][0])*ease;
+const small=innerWidth<700;
+hero.position.x=small?0:px;hero.position.y=small?1.4:0;
+hero.rotation.x=t*.6+prog*6+my*.8;hero.rotation.y=t*.8+prog*9+mx*.8;
+hero.scale.setScalar((small?.65:1)*(1+Math.sin(prog*Math.PI)*.35));
+C.position.z=7-prog*2.5;C.position.x=mx*.8;C.position.y=-my*.6;C.lookAt(0,0,0);
+stars.rotation.y=t*.03+prog*1.2;stars.rotation.x=prog*.5;
+cubes.forEach(m=>{const u=m.userData,an=u.a+t*.5+prog*5;m.position.set(hero.position.x+Math.cos(an)*u.r*(.6+prog*.5),u.y+Math.sin(t+u.a)*.3,Math.sin(an)*u.r*.8);m.rotation.x+=.02;m.rotation.y+=.015;m.material.color.lerp(target,.03)});
+R.render(S,C);requestAnimationFrame(loop)}
+loop();
+addEventListener('resize',()=>{C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix();R.setSize(innerWidth,innerHeight)});
+</script></body></html>
